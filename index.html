@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>蘇軾惠州傳奇</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Serif TC', serif;
+            background-color: #f7e9d7;
+            color: #4a2c1e;
+        }
+        .container {
+            max-width: 800px;
+            min-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .game-box {
+            background-color: #fff8e1;
+            border: 4px solid #b87333;
+            border-radius: 1rem;
+            box-shadow: 10px 10px 0px rgba(184, 115, 51, 0.7);
+            transition: all 0.3s ease-in-out;
+        }
+        .game-box:hover {
+            box-shadow: 12px 12px 0px rgba(184, 115, 51, 0.8);
+            transform: translate(-2px, -2px);
+        }
+        .button-group button {
+            background-color: #b87333;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 9999px;
+            font-weight: bold;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .button-group button:hover {
+            background-color: #8c5a28;
+            transform: translateY(-2px);
+        }
+        .button-group button:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+        #message-box {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #fff8e1;
+            border: 4px solid #b87333;
+            border-radius: 1rem;
+            box-shadow: 10px 10px 0px rgba(184, 115, 51, 0.7);
+            padding: 2rem;
+            z-index: 1000;
+            display: none;
+            text-align: center;
+        }
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            display: none;
+        }
+    </style>
+</head>
+<body class="p-8">
+
+    <div class="container mx-auto p-6 rounded-lg game-box">
+        <h1 class="text-3xl md:text-5xl font-bold text-center mb-6">蘇軾惠州傳奇</h1>
+        <img id="game-image" class="w-full h-auto object-cover rounded-lg border-2 border-amber-800 mb-6" src="" alt="遊戲場景圖片">
+        <div id="game-text" class="text-lg md:text-xl leading-relaxed mb-6 bg-orange-100 p-4 rounded-lg border-2 border-orange-300">
+            你，是蘇軾。正值人生的低谷，因「烏臺詩案」被貶至嶺南惠州。面對這片被稱為「天涯海角」的瘴癘之地，你的心中充滿了不甘與無奈。然而，生命仍要繼續。你的旅程，將從這裡開始...
+        </div>
+        <div id="choices" class="grid grid-cols-1 md:grid-cols-2 gap-4 button-group">
+            <!-- Choices will be rendered here by JavaScript -->
+        </div>
+    </div>
+
+    <!-- Message Box UI -->
+    <div id="overlay"></div>
+    <div id="message-box">
+        <p id="message-text" class="text-lg mb-4"></p>
+        <button id="message-ok" class="bg-b87333 text-white px-4 py-2 rounded-full font-bold">好的</button>
+    </div>
+
+    <script>
+        const gameTextEl = document.getElementById('game-text');
+        const choicesEl = document.getElementById('choices');
+        const gameImageEl = document.getElementById('game-image');
+        const messageBoxEl = document.getElementById('message-box');
+        const messageTextEl = document.getElementById('message-text');
+        const messageOkEl = document.getElementById('message-ok');
+        const overlayEl = document.getElementById('overlay');
+
+        function showMessage(text) {
+            messageTextEl.textContent = text;
+            messageBoxEl.style.display = 'block';
+            overlayEl.style.display = 'block';
+        }
+
+        messageOkEl.addEventListener('click', () => {
+            messageBoxEl.style.display = 'none';
+            overlayEl.style.display = 'none';
+        });
+
+        // The game states and logic
+        const game = {
+            state: 'start',
+            history: [],
+            data: {
+                suShiState: 'melancholy'
+            },
+            scenes: {
+                start: {
+                    text: '你，是蘇軾。自烏臺詩案後被貶黃州，如今又因舊黨失勢，新黨得勢，被宰相章惇再度貶謫至嶺南惠州。面對這片被稱為「天涯海角」的瘴癘之地，你的心中充滿了不甘與無奈。然而，生命仍要繼續。你的旅程，將從這裡開始...',
+                    image: 'https://i.postimg.cc/5NFjf2Mw/dreamina-2025-09-13-8091.jpg',
+                    choices: [
+                        { text: '回想此生', next: 'ziti' },
+                        { text: '回想「烏臺詩案」的經過', next: 'wutai_case' },
+                        { text: '坦然接受命運，前往惠州', next: 'arrive_huizhou_calm' }
+                    ]
+                },
+                wutai_case: {
+                    text: '你回想起那段驚心動魄的烏臺詩案。那次經歷讓你九死一生，被貶至黃州。如今，新黨再度得勢，宰相章惇認為你過於安逸，再次將你貶謫到更遠的惠州。你深知，這場黨爭遠未結束。',
+                    image: 'https://i.postimg.cc/FzBVz7SQ/dreamina-2025-09-14-2289.jpg',
+                    choices: [
+                        { text: '從此避世，不再過問政事', next: 'arrive_huizhou_calm' },
+                        { text: '帶著警惕，前往惠州', next: 'arrive_huizhou' }
+                    ]
+                },
+                ziti: {
+                    text: '你回顧自己這一生，經歷過宦海沉浮，也曾身陷囹圄。此時，你心中充滿了複雜的情緒，但你沒有被打倒，反而更堅定地面對未來的挑戰。',
+                    image: 'https://i.postimg.cc/nL1CNSfg/dreamina-2025-09-13-3873.jpg',
+                    choices: [
+                        { text: '坦然接受命運，前往惠州', next: 'arrive_huizhou_calm' }
+                    ]
+                },
+                arrive_huizhou: {
+                    text: '你舟車勞頓，身心俱疲地抵達了惠州。多年的流放生活與旅途勞苦讓你的舊疾──痔瘡復發，疼痛難耐。這座城市風光秀麗，但你的心情卻是沉重的。你決定先安頓下來，面對未知的未來。',
+                    image: 'https://i.postimg.cc/5NFjf2Mw/dreamina-2025-09-13-8091.jpg',
+                    choices: [
+                        { text: '四處走走，尋找樂趣', next: 'explore' },
+                        { text: '閉門不出，獨自寫作', next: 'write' },
+                        { text: '為當地百姓做些實事', next: 'civic_duty' }
+                    ]
+                },
+                arrive_huizhou_calm: {
+                    text: '你平靜地抵達惠州。看著這裡的青山綠水，你決定將過去的黨爭與不快拋諸腦後，重新過一種恬淡知足的生活。',
+                    image: 'https://i.postimg.cc/9Q500HWs/dreamina-2025-09-13-9521.jpg',
+                    choices: [
+                        { text: '尋找當地美食', next: 'discover_food' },
+                        { text: '寫詩詠景', next: 'write' },
+                        { text: '為當地百姓做些實事', next: 'civic_duty' }
+                    ]
+                },
+                civic_duty: {
+                    text: '你深知自己身為朝廷命官，即使被貶，仍有為民服務的責任。你主動協助當地興辦多項民生建設，包括協助修建橋樑、堤壩，並向廣州居民建議修建供水工程，改善民生。你的實際行動，讓惠州百姓感受到了你的關懷與才華。',
+                    image: 'https://i.postimg.cc/V64Ry7Lv/dreamina-2025-09-14-4030.jpg',
+                    choices: [
+                        { text: '這些民生建設將成為你的另一項功績', next: 'ending_civic_success' }
+                    ]
+                },
+                discover_food: {
+                    text: '你漫步在惠州街頭，聞到一股誘人的香氣。攤販正在販賣剛成熟的荔枝和羊脊骨。你的肚子餓了，你決定...',
+                    image: 'https://i.postimg.cc/5yXyYxQW/dreamina-2025-09-13-3886.jpg',
+                    choices: [
+                        { text: '大啖荔枝，品嚐嶺南風味', next: 'eat_lychee' },
+                        { text: '購買羊脊骨，享受平民美食', next: 'eat_lamb' }
+                    ]
+                },
+                eat_lychee: {
+                    text: '你撥開紅色的外殼，露出晶瑩剔透的果肉。一股甜美的香氣撲鼻而來，入口後清甜多汁，讓你的疲憊一掃而空。你感到無比滿足，想起嶺南的風物，這荔枝就如「海山仙人絳羅襦，紅紗中單白玉膚」般嬌豔動人。它有著「不須更待妃子笑，風骨自是傾城姝」的風姿，無需勞師動眾，便能自帶傾城之色。你的豁達心性在這片土地上重新燃起。你甚至寫下詩句：日啖荔枝三百顆，不辭長作嶺南人。你筆下的詩文介紹了荔枝、枇杷、楊梅等嶺南特有的熱帶水果。',
+                    image: 'https://i.postimg.cc/Qt4VdBtq/dreamina-2025-09-13-5506.jpg',
+                    choices: [
+                         { text: '將詩作寄給朋友，抒發胸懷', next: 'lychee_trouble' },
+                         { text: '好好享受，不留紀錄', next: 'continue_life' }
+                    ]
+                },
+                eat_lamb: {
+                    text: '你將街上屠夫捨棄的羊脊骨帶回家。這本是窮人也嫌棄的食物，但你用巧思將它變成人間至味。你先將它煮熟，再用酒浸泡，直到骨頭上的肉變得酥軟。你咬著骨頭，發出喀嚓作響的聲響，就連牙齒都為之搖晃。你笑著對自己說，這滋味遠勝過珍饈百味，因為這是一種獨一無二的體驗。你將這份心得寫下來，打算寄給弟弟子由分享。',
+                    image: 'https://i.postimg.cc/9QTYXXFv/dreamina-2025-09-14-9391.jpg',
+                    choices: [
+                        { text: '將美食心得分享給友人', next: 'continue_life' },
+                        { text: '繼續尋找更多民間美味', next: 'continue_life' }
+                    ]
+                },
+                explore: {
+                    text: '你漫步在惠州西湖畔，突然聞到一股誘人的香氣。原來是剛成熟的荔枝。你決定...',
+                    image: 'https://i.postimg.cc/kMbF9FMT/dreamina-2025-09-13-6047.jpg',
+                    choices: [
+                        { text: '大快朵頤，品嚐美味', next: 'eat_lychee' },
+                        { text: '在山中遇見一位道士，與之論道', next: 'meet_taoist' },
+                        { text: '想起楊貴妃的傳說，感嘆世事', next: 'reflect_lychee' }
+                    ]
+                },
+                meet_taoist: {
+                    text: '你在山間小徑上遇見一位身著道袍、仙風道骨的老者。你二人一見如故，相坐論道。道士告訴你，世間功名利祿皆如浮雲，唯有山水自然，能洗滌塵心。他見你體弱，便說：「我觀你氣色不佳，想必是舟車勞頓。我這裡有一味丹砂，可助你強身健體。」你想起初至惠州時，表兄程正輔便曾為你採購丹砂，你曾寫信道：「某於大丹未明了，直欲以此砂試煮煉，萬一伏火，亦恐成藥爾。」你雖然技不如人，卻以天真取勝，竟希冀一朝煉丹便能藥成。道士見你眼神中閃過一絲好奇，笑了笑：「煉丹之道，不只在於藥石，更在於心境。心若不定，丹亦難成。」',
+                    image: 'https://i.postimg.cc/xTBPSNYv/dreamina-2025-09-14-3569.jpg',
+                    choices: [
+                        { text: '向道士請教煉丹之道', next: 'learn_alchemy' },
+                        { text: '與道士一同暢遊山水', next: 'explore_landscape' },
+                        { text: '回到家中，將感悟寫成詩', next: 'poetic_life' }
+                    ]
+                },
+                learn_alchemy: {
+                    text: '你向道士請教煉丹之術，他告訴你：「煉丹，不只是追求長生不老，更是一種修心養性的過程。煉丹爐中的火候，如同人生的起伏；丹砂的轉變，如同心靈的昇華。心若不靜，丹必不成。」你聽後恍然大悟，明白自己對於煉丹的追求，其實是對一種更廣闊精神世界的嚮往。你決定將這份感悟，融入你的流放生活。',
+                    image: 'https://i.postimg.cc/L4CTN0b0/dreamina-2025-09-14-4449.jpg',
+                    choices: [
+                        { text: '將這份感悟融入你的詩作', next: 'poetic_life' },
+                        { text: '回到家中，和朝雲分享心得', next: 'chaoyun_life' }
+                    ]
+                },
+                explore_landscape: {
+                    text: '你與道士在山間漫遊。嶺南的山峰奇特，雲霧繚繞，飛瀑流泉聲聲入耳。你走過古木參天的小徑，俯瞰著蜿蜒的東江。這片被世人視為蠻荒之地，在你眼中卻是充滿靈氣的仙境。你感受到了大自然的廣闊與包容，心中積壓的鬱悶一掃而空。你明白，無論身在何處，都可以找到心靈的歸宿。',
+                    image: 'https://i.postimg.cc/RCWk18SX/dreamina-2025-09-14-2707.jpg',
+                    choices: [
+                        { text: '將這份感悟融入你的詩作', next: 'poetic_life' }
+                    ]
+                },
+                reflect_lychee: {
+                    text: '你感嘆唐玄宗為了楊貴妃而不顧百姓勞苦，運送荔枝。你心中豁然開朗，知道自己的價值不在於榮華富貴，而在於超然物外的精神。',
+                    image: 'https://i.postimg.cc/J0tHt8jw/image.png',
+                    choices: [
+                        { text: '回到家中，和朝雲分享心得', next: 'chaoyun_life' }
+                    ]
+                },
+                write: {
+                    text: '在惠州的日子，你將心思完全沉浸在寫作和建構屬於自己的精神世界。你時常翻閱陶淵明的詩集，這位晉代詩人也曾因為政治上的失意而歸隱田園。他的詩句「採菊東籬下，悠然見南山」所描繪的恬淡與自在，深深地觸動了你。你感到，在遠離朝廷紛擾的嶺南，你與陶淵明的處境產生了共鳴。於是，你和著他的詩，不僅僅是文字上的應和，更是心境上的交流，將自己的流放心境與他的歸隱情懷融為一體。在這片遠離塵囂的土地上，尋求更廣闊的精神寄託。',
+                    image: 'https://i.postimg.cc/fTVvFf4W/dreamina-2025-09-14-3317.jpg',
+                    choices: [
+                        { text: '專注於學術，將心靈的感悟寫成文字', next: 'academic_life' },
+                        { text: '將詩作寄給朋友，抒發胸懷', next: 'poetic_life' }
+                    ]
+                },
+                chaoyun_life: {
+                    text: '你回到家中，與朝雲分享你的見聞與感悟。你告訴她，自己在惠州的生活雖然清苦，但卻比在京城時更為自在。朝雲靜靜地聆聽，眼神中充滿了溫柔與理解。當你說到自己因為吃荔枝而寫下「日啖荔枝三百顆，不辭長作嶺南人」時，朝雲微笑著搖了搖頭，說：「學士一肚皮不合時宜。」你聞言一愣，繼而哈哈大笑，明白她是在說你的豁達與樂天，在這派系鬥爭的官場上，顯得格格不入。這句話，既是對你性格的理解，也成為你往後人生的最佳寫照。',
+                    image: 'https://i.postimg.cc/s2Ymmjkp/dreamina-2025-09-14-6378.jpg',
+                    choices: [
+                        { text: '與朝雲相守，享受平靜生活', next: 'continue_life_chaoyun' },
+                        { text: '不幸的是，朝雲病逝了', next: 'chaoyun_death' }
+                    ]
+                },
+                chaoyun_death: {
+                    text: '正當你逐漸適應惠州的生活時，你摯愛的侍妾朝雲卻不幸病逝。七月初五日，朝雲卒，年僅三十四歲。她在彌留之際，口中仍誦唸著《金剛經》中的六如偈：「一切有為法，如夢幻泡影，如露亦如電，應作如是觀。」這份超脫生死、了悟佛性的心境，讓你的悲痛中多了一份敬佩。<br/><br/>八月三日，你將她安葬在惠州西湖南畔棲禪寺的松林裡，並親筆為她寫下《墓誌銘》，其中一句「浮屠是瞻，伽藍是依。如汝宿心，唯佛是歸」道盡了你對她的愛與不捨。在棲禪寺大聖塔的墓地旁，你作亭覆之，並將其命名為「六如亭」，以紀念她臨終所誦的經偈。此後，你又陸續作了《悼朝雲詩》、撰寫《朝雲疏》、在重陽節作詞，以及在十月寫下《西江月》詞，將無盡的思念與悲傷化為詩詞，永誌不忘。',
+                    image: 'https://i.postimg.cc/NMmPShKc/image.png',
+                    choices: [
+                        { text: '沉浸在悲傷中', next: 'ending_sad' },
+                        { text: '將悲痛化為力量，繼續前行', next: 'ending_peaceful' }
+                    ]
+                },
+                lychee_trouble: {
+                    text: '你寫下「日啖荔枝三百顆，不辭長作嶺南人」的詩句，傳回京城。宰相章惇聽聞後大為不悅，認為你身處逆境仍過得太過愜意。你曾聽說過章惇的冷酷。當年有人為同僚求情，他面無表情地回道：「一塊木頭，也想說話嗎？」他對異己的無情，在朝中是出了名的。這次，他得知你的詩句後，眼神中閃過一絲狠厲。他決定將你貶到更遠的儋州，讓你再也無法如此瀟灑。',
+                    image: 'https://i.postimg.cc/50N6J5x0/dreamina-2025-09-13-5150.jpg',
+                    choices: [
+                        { text: '接受新的考驗，前往儋州', next: 'ending_accept' }
+                    ]
+                },
+                continue_life: {
+                    text: '你享受著惠州的美好，與當地人交友，過著平靜的生活。雖然身處逆境，你卻找到了心靈的自由與平靜。',
+                    image: 'https://i.postimg.cc/XvX5b4Y5/dreamina-2025-09-11-1584-A_scholar_smiles,_holding_a_cup_of_wine,....jpg',
+                    choices: [
+                        { text: '繼續過著恬淡的生活', next: 'ending_peaceful' }
+                    ]
+                },
+                continue_life_chaoyun: {
+                    text: '你與朝雲相守，遠離朝廷的紛擾。在惠州的日子裡，你們找到了真正的平靜與幸福。' +
+                          '<br/><br/>紹聖元年（1095年）十月，你初到惠州，暫居嘉佑寺，寫下了《初到惠州》一詩，表達了初來乍到的感慨。十一月，你戲作《戲贈朝雲詩》，將她比作通德、伶玄，讚美她不僅能歌善舞，更具備禪心佛性。她對你來說，是經卷藥爐旁的新活計，也是舞衫歌扇的舊因緣。你甚至戲言，希望丹藥煉成後，能帶著她一同飛升，不作凡間的雲雨仙人。' +
+                          '<br/><br/>翌年（1096年）三月，你們從嘉佑寺遷居至風景更佳的合江樓，你在這裡寫下了《松江亭上賦梅花詩》三首。到了朝雲生日的五月四日，你作了《殢人嬌·贈朝雲》詞和《浣溪沙·端午》詞，為她慶賀。' +
+                          '<br/><br/>那年秋天七月，朝雲欲歌你所作的《蝶戀花》，卻久久不能出聲。你問她為何，她回答說：「奴不能歌者，是枝上柳綿吹又少。天涯何處無芳草。」你聽後翩然大笑，說道：「是吾正悲秋，而汝又傷春矣。」於是兩人相視而笑，遂罷。從此之後，這首詞在你們之間，便成了一個特殊的默契。' +
+                          '<br/><br/>八月，惠州突發颶風，多間房舍倒塌，緊接著又發大水。你的三兒子蘇過為此寫下《颶風賦》，而你則在《題合江樓》中，記錄了這段風雨飄搖的日子。然而，無論風雨多大，有朝雲在身旁，你的心靈始終有個安定的港灣。',
+                    image: 'https://i.postimg.cc/vBGzNRyC/dreamina-2025-09-14-4958.jpg',
+                    choices: [
+                        { text: '這段經歷成為你心靈的避風港', next: 'ending_peaceful_chaoyun' }
+                    ]
+                },
+                academic_life: {
+                    text: '你將精力投入到學術研究中，鑽研《易經》等經典，並將心靈的感悟融入其中。你在惠州的生活，反而成為你學術生涯的黃金時期。',
+                    image: 'https://i.postimg.cc/XvL1fKBf/dreamina-2025-09-14-9012.jpg',
+                    choices: [
+                        { text: '這段經歷讓你成為一代大師', next: 'ending_success' }
+                    ]
+                },
+                poetic_life: {
+                    text: '你在惠州用詩詞記錄生活，將惠州西湖與嶺南風物完美融合。你的作品傳遍天下，讓更多人感受到惠州之美，也讓你的詩魂不朽，奠定了你作為一代大文豪的地位。',
+                    image: 'https://i.postimg.cc/N0VHGSKz/dreamina-2025-09-11-3271-An_old,_wise_scholar_is_sitting_with_a_g....jpg',
+                    choices: [
+                        { text: '這段經歷讓你成為一代大文豪', next: 'ending_success_poetic' }
+                    ]
+                },
+                ending_sad: {
+                    text: '結局：悲傷的流放。\n你沉浸在失去朝雲的悲痛中，日漸消沉。雖然生活仍在繼續，但你的心中多了一道難以癒合的傷痕，再也無法回到過去那般灑脫。',
+                    image: 'https://i.postimg.cc/VLR2zcDs/2.png',
+                    choices: [{ text: '重新開始', next: 'restart_game_with_motto' }]
+                },
+                ending_peaceful: {
+                    text: '結局：恬淡的自由。\n儘管經歷了許多變故，你最終在惠州找到了內心的平靜。你用樂觀的心態面對生活，將這裡視為你功業的所在，不再為仕途煩惱。你開始享受在東坡故居的簡單生活，親手種植果蔬，與當地百姓把酒言歡。你發現，那些曾經讓你焦慮的政治紛爭，如今已變得遙遠而模糊。你不再是那個在朝堂上爭辯的官員，而是這片山水間的一位隱士。你的筆下，不再是激昂的政論，而是對惠州西湖美景的讚歎，對尋常百姓生活的溫暖描繪。你明白，功業不只在於廟堂之上，更在於心靈的豐盛與自由。在惠州，你將逆境轉化為生命的另一種可能，達到了真正的豁達與超脫。',
+                    image: 'https://i.postimg.cc/vTBw40Sg/dreamina-2025-09-10-1229-A_peaceful_and_serene_mountain_scene._A_....jpg',
+                    choices: [{ text: '重新開始', next: 'restart_game_with_motto' }]
+                },
+                ending_peaceful_chaoyun: {
+                    text: '結局：寧靜的相守。\n在惠州這片土地上，你與朝雲找到了平凡而珍貴的幸福。你們互相扶持，將流放的日子過成了恬淡美好的隱居生活。',
+                    image: 'https://i.postimg.cc/P57fyZGw/dreamina-2025-09-14-9304.jpg',
+                    choices: [{ text: '重新開始', next: 'restart_game_with_motto' }]
+                },
+                ending_accept: {
+                    text: '結局：無懼的考驗。\n你坦然接受了新的貶謫，前往更遠的儋州。你明白，無論身在何處，你的心都無法被流放。你將繼續你的旅程，書寫下人生的下一個篇章。',
+                    image: 'https://i.postimg.cc/Kjz5mnRN/dreamina-2025-09-14-8920.jpg',
+                    choices: [
+                        { text: '接受新的考驗，前往儋州', next: 'restart_game_with_motto' }
+                    ]
+                },
+                ending_success: {
+                    text: '結局：文學的巔峰。\n你在惠州的流放歲月，成為你文學生涯的轉捩點。你完成了《易經》等經典的鑽研，將逆境化為學術上的輝煌成就，名留青史。',
+                    image: 'https://i.postimg.cc/G2ys4KYh/dreamina-2025-09-11-9721-A_scholar_stands_up_with_a_scroll_in_han....jpg',
+                    choices: [{ text: '重新開始', next: 'restart_game_with_motto' }]
+                },
+                poetic_life: {
+                    text: '你在惠州用詩詞記錄生活，將惠州西湖與嶺南風物完美融合。你的作品傳遍天下，讓更多人感受到惠州之美，也讓你的詩魂不朽，奠定了你作為一代大文豪的地位。',
+                    image: 'https://i.postimg.cc/N0VHGSKz/dreamina-2025-09-11-3271-An_old,_wise_scholar_is_sitting_with_a_g....jpg',
+                    choices: [
+                        { text: '這段經歷讓你成為一代大文豪', next: 'ending_success_poetic' }
+                    ]
+                },
+                ending_success_poetic: {
+                    text: '結局：不朽的詩魂。\n你在惠州用詩詞記錄生活，將惠州西湖與嶺南風物完美融合。你的作品傳遍天下，讓更多人感受到惠州之美，也讓你的詩魂不朽，奠定了你作為一代大文豪的地位。',
+                    image: 'https://i.postimg.cc/mDVGZvVW/dreamina-2025-09-10-5420-A_serene_indoor_scene_in_a_high-class_ma....jpg',
+                    choices: [{ text: '重新開始', next: 'restart_game_with_motto' }]
+                },
+                ending_civic_success: {
+                    text: '結局：實踐的功業。\n你在惠州的歲月，不僅留下不朽的詩篇，更透過實際的民生建設，為當地百姓帶來了福祉。你證明了，一位士大夫的功業，不只在於廟堂之上，更在於對地方的關懷與貢獻。',
+                    image: 'https://i.postimg.cc/NfXHmJqX/dreamina-2025-09-14-9392.jpg',
+                    choices: [{ text: '重新開始', next: 'restart_game_with_motto' }]
+                },
+                restart_game_with_motto: {
+                    text: '你回顧了自己的一生，將所有流放的經歷匯聚成一句話：「心似已灰之木，身如不繫之舟。問汝平生功業，黃州惠州儋州。」你明白，真正的功業，不在於廟堂之上的輝煌，而在於你所走過的每一寸土地，以及你所創造的每一個不朽篇章。',
+                    image: 'https://i.postimg.cc/T1BwnZnL/dreamina-2025-09-13-7464.jpg',
+                    choices: [{ text: '再玩一次', next: 'start' }]
+                }
+            }
+        };
+
+        function renderScene(scene) {
+            gameTextEl.innerHTML = scene.text;
+            gameImageEl.src = scene.image;
+            choicesEl.innerHTML = '';
+            scene.choices.forEach(choice => {
+                const button = document.createElement('button');
+                button.textContent = choice.text;
+                button.addEventListener('click', () => {
+                    handleChoice(choice.next);
+                });
+                choicesEl.appendChild(button);
+            });
+        }
+
+        function handleChoice(nextState) {
+            game.history.push(game.state);
+            game.state = nextState;
+            const nextScene = game.scenes[nextState];
+            if (nextScene) {
+                renderScene(nextScene);
+            } else {
+                showMessage('遊戲狀態錯誤！');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderScene(game.scenes[game.state]);
+        });
+    </script>
+</body>
+</html>
